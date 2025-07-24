@@ -1,0 +1,435 @@
+{
+  "rag_system": {
+    "name": "VIXEM Edge RAG System",
+    "version": "2.0.0",
+    "description": "Sistema de Recuperação e Geração Aumentada para recomendações industriais inteligentes",
+    "last_updated": "2025-07-24T14:30:00Z",
+    "comments": {
+      "purpose": "Configuração central do sistema RAG para análise industrial automatizada",
+      "usage": "Este arquivo controla TODOS os parâmetros de análise, thresholds de alerta e comportamento da IA"
+    }
+  },
+
+  "openai_integration": {
+    "_comment": "🤖 Configurações da API OpenAI para geração inteligente de recomendações",
+    "api_version": "v1",
+    "base_url": "https://api.openai.com/v1",
+    "model_primary": "gpt-4o",
+    "model_primary_comment": "Modelo principal - mais inteligente e preciso",
+    "model_fallback": "gpt-4",
+    "model_fallback_comment": "Modelo alternativo se o principal falhar",
+    "max_tokens": 2000,
+    "max_tokens_comment": "Tamanho máximo da resposta (2000 = ~1500 palavras)",
+    "temperature": 0.3,
+    "temperature_comment": "Criatividade: 0.0=robótico, 1.0=criativo. 0.3=equilibrado para indústria",
+    "timeout_seconds": 30,
+    "timeout_seconds_comment": "Tempo limite para resposta da IA (30s é seguro)",
+    "retry_attempts": 3,
+    "retry_attempts_comment": "Quantas vezes tentar se der erro",
+    "retry_delay_ms": 1000,
+    "retry_delay_ms_comment": "Aguardar 1 segundo entre tentativas",
+    "cost_optimization": {
+      "enabled": true,
+      "max_daily_requests": 1000,
+      "cost_limit_usd": 50.0,
+      "comment": "Proteção contra custos excessivos - máximo $50/dia"
+    }
+  },
+
+  "recommendation_engine": {
+    "_comment": "🎯 Motor principal de análise - aqui estão as 'regras' que definem quando algo é problema",
+    
+    "analysis_patterns": {
+      "_comment": "Padrões que o sistema procura automaticamente nos dados de produção",
+      
+      "alta_taxa_rejeicao": {
+        "enabled": true,
+        "threshold": 0.15,
+        "threshold_comment": "CRÍTICO: 15% de rejeição dispara alerta (ajuste conforme sua realidade)",
+        "window_hours": 24,
+        "window_hours_comment": "Analisa últimas 24 horas para detectar o padrão",
+        "min_samples": 10,
+        "min_samples_comment": "Precisa de pelo menos 10 peças para análise ser válida",
+        "priority_weight": 5,
+        "priority_weight_comment": "Prioridade máxima (1-5) - problema grave que precisa ação imediata",
+        "severity_thresholds": {
+          "medium": 0.15,
+          "high": 0.25,
+          "critical": 0.35,
+          "comment": "15%=médio, 25%=alto, 35%=crítico"
+        },
+        "description": "Taxa de rejeição acima do limite aceitável para produção industrial"
+      },
+
+      "sequencia_rejeicoes": {
+        "enabled": true,
+        "consecutive_limit": 5,
+        "consecutive_limit_comment": "ALERTA: 5 rejeições seguidas indica problema sistemático",
+        "time_window_minutes": 30,
+        "time_window_minutes_comment": "Considera 'seguidas' se acontecer em até 30 minutos",
+        "priority_weight": 4,
+        "priority_weight_comment": "Alta prioridade - indica falha do processo",
+        "escalation_rules": {
+          "3_consecutive": "warning",
+          "5_consecutive": "alert", 
+          "10_consecutive": "critical",
+          "comment": "Escalation: 3=aviso, 5=alerta, 10=crítico"
+        },
+        "description": "Sequência de rejeições consecutivas indicando instabilidade do processo"
+      },
+
+      "padrao_temporal": {
+        "enabled": true,
+        "deviation_threshold": 0.10,
+        "deviation_threshold_comment": "PADRÃO: 10% pior que a média geral indica problema no horário",
+        "min_hourly_samples": 5,
+        "min_hourly_samples_comment": "Precisa de 5+ peças por hora para análise ser confiável",
+        "priority_weight": 3,
+        "priority_weight_comment": "Prioridade média - problema localizado em horário específico",
+        "time_analysis": {
+          "shift_patterns": true,
+          "break_patterns": true,
+          "weekend_patterns": false,
+          "comment": "Analisa padrões por turno e pausas, ignora fins de semana"
+        },
+        "description": "Padrões de qualidade que variam por horário, turno ou operador"
+      },
+
+      "lotes_pequenos": {
+        "enabled": true,
+        "optimal_batch_size": 300,
+        "optimal_batch_size_comment": "Baseado no Item 1318 - tamanho ótimo é ~300 peças",
+        "small_batch_threshold": 0.3,
+        "small_batch_threshold_comment": "Lotes menores que 30% do ótimo (90 peças) são 'pequenos'",
+        "frequency_threshold": 0.4,
+        "frequency_threshold_comment": "Se 40%+ dos lotes são pequenos, gera alerta",
+        "priority_weight": 2,
+        "priority_weight_comment": "Baixa prioridade - impacta eficiência mas não qualidade",
+        "description": "Detecção de lotes muito pequenos que prejudicam eficiência"
+      }
+    },
+
+    "confidence_weights": {
+      "_comment": "🎯 Como calcular o nível de 'certeza' das recomendações (soma deve dar 1.0)",
+      "sample_size_factor": 0.3,
+      "sample_size_factor_comment": "30% da confiança vem da quantidade de dados (mais dados = mais confiança)",
+      "consistency_factor": 0.4,
+      "consistency_factor_comment": "40% da confiança vem da consistência (padrão sempre se repete = mais confiança)",
+      "temporal_factor": 0.3,
+      "temporal_factor_comment": "30% da confiança vem da distribuição no tempo (problema recente = mais confiança)",
+      "validation_rules": {
+        "min_confidence": 0.3,
+        "comment": "Só gera recomendação se confiança >= 30%"
+      }
+    },
+
+    "priority_mapping": {
+      "_comment": "🚨 Tradução dos números de prioridade para ações práticas",
+      "5": {
+        "name": "critica",
+        "action": "PARE A PRODUÇÃO - Intervenção imediata necessária",
+        "color": "#dc3545",
+        "notification": "immediate",
+        "escalation": "supervisor"
+      },
+      "4": {
+        "name": "alta", 
+        "action": "Ação urgente - Resolver nas próximas 2 horas",
+        "color": "#fd7e14",
+        "notification": "urgent",
+        "escalation": "team_lead"
+      },
+      "3": {
+        "name": "media",
+        "action": "Ação planejada - Resolver no turno atual",
+        "color": "#ffc107",
+        "notification": "normal",
+        "escalation": "operator"
+      },
+      "2": {
+        "name": "baixa",
+        "action": "Monitoramento - Observar tendência",
+        "color": "#17a2b8",
+        "notification": "low",
+        "escalation": "none"
+      },
+      "1": {
+        "name": "muito_baixa",
+        "action": "Informativo - Apenas para conhecimento",
+        "color": "#6c757d",
+        "notification": "info",
+        "escalation": "none"
+      }
+    },
+
+    "machine_learning": {
+      "_comment": "🧠 Configurações para aprendizado contínuo do sistema",
+      "enabled": true,
+      "learning_rate": 0.1,
+      "historical_weight": 0.7,
+      "recent_weight": 0.3,
+      "comment": "Sistema aprende: 70% histórico + 30% dados recentes"
+    }
+  },
+
+  "prompt_templates": {
+    "_comment": "📝 Templates para comunicação com a IA - definem como ela deve responder",
+    
+    "system_prompt": "Você é um especialista em engenharia de produção com 20 anos de experiência em melhoria contínua. Analise dados industriais e forneça recomendações práticas, específicas e acionáveis. Use linguagem técnica mas clara. Foque sempre na causa raiz e soluções implementáveis.",
+    
+    "analysis_prompt": "DADOS DA ANÁLISE:\n\nMáquina: {machine_id}\nItem: {item_name}\nPeríodo: {time_period}\n\nPADRÕES DETECTADOS:\n{patterns}\n\nCONTEXTO ADICIONAL:\n{context}\n\nTAREFA: Baseado nos padrões acima, gere uma recomendação industrial específica seguindo esta estrutura:\n\n1. DIAGNÓSTICO: Qual é o problema principal?\n2. CAUSA RAIZ: Por que está acontecendo?\n3. AÇÕES IMEDIATAS: O que fazer agora?\n4. AÇÕES PREVENTIVAS: Como evitar no futuro?\n5. IMPACTO ESPERADO: Qual melhoria é esperada?\n\nSeja direto, prático e focado em ações que o operador pode executar.",
+
+    "emergency_prompt": "SITUAÇÃO CRÍTICA DETECTADA! Analise rapidamente e forneça apenas as 3 ações mais urgentes para resolver este problema de produção: {critical_pattern}",
+
+    "trend_analysis_prompt": "Analise esta tendência de {days} dias na máquina {machine_id}: {trend_data}. Identifique se é melhoria, deterioração ou estabilidade. Explique as possíveis causas e recomende próximos passos.",
+
+    "comparative_prompt": "Compare a performance atual da {machine_id} com:\n- Histórico próprio: {historical}\n- Benchmark industrial: {benchmark}\n- Outras máquinas: {peers}\n\nIdentifique gaps e oportunidades de melhoria."
+  },
+
+  "knowledge_base": {
+    "_comment": "📚 Base de conhecimento industrial - causas comuns para cada tipo de problema",
+    
+    "common_causes": {
+      "alta_rejeicao": {
+        "mechanical": [
+          "Desalinhamento de ferramentas de corte",
+          "Desgaste excessivo de componentes críticos",
+          "Folgas em guias e mancais",
+          "Vibração excessiva da máquina"
+        ],
+        "process": [
+          "Parâmetros de velocidade inadequados",
+          "Pressão de corte incorreta",
+          "Lubrificação insuficiente",
+          "Temperatura de processo fora da faixa"
+        ],
+        "material": [
+          "Variação dimensional da matéria-prima",
+          "Dureza do material fora de especificação",
+          "Contaminação ou impurezas",
+          "Lote de material defeituoso"
+        ],
+        "human": [
+          "Operador inexperiente ou mal treinado",
+          "Procedimento não seguido corretamente",
+          "Setup incorreto da máquina",
+          "Falta de calibração regular"
+        ]
+      },
+
+      "sequencia_rejeicoes": [
+        "Falha intermitente de sensor ou atuador",
+        "Deriva gradual de parâmetros de processo",
+        "Problema na alimentação de material",
+        "Instabilidade no controle automático",
+        "Ferramenta perdendo o fio gradualmente",
+        "Aquecimento excessivo afetando precisão"
+      ],
+
+      "padrao_temporal": {
+        "inicio_turno": [
+          "Máquina ainda não aquecida adequadamente",
+          "Setup inicial incorreto ou incompleto",
+          "Operador ainda se adaptando ao ritmo",
+          "Parâmetros não ajustados para condições atuais"
+        ],
+        "fim_turno": [
+          "Fadiga do operador afetando atenção",
+          "Pressa para cumprir meta de produção",
+          "Manutenção preventiva atrasada",
+          "Falta de material de qualidade no fim do lote"
+        ],
+        "pos_pausa": [
+          "Máquina esfriou durante a pausa",
+          "Parâmetros não reajustados após parada",
+          "Material exposto a condições ambientais",
+          "Falta de reaquecimento adequado"
+        ]
+      }
+    },
+
+    "best_practices": {
+      "_comment": "✅ Melhores práticas industriais por categoria",
+      "quality_control": [
+        "Implementar CEP (Controle Estatístico de Processo)",
+        "Usar dispositivos poka-yoke (à prova de erro)",
+        "Realizar inspeção em processo a cada 10 peças",
+        "Manter cartas de controle atualizadas"
+      ],
+      "preventive_maintenance": [
+        "Seguir cronograma rigoroso de manutenção",
+        "Monitorar vibração e temperatura continuamente",
+        "Substituir componentes preventivamente",
+        "Manter registro detalhado de intervenções"
+      ],
+      "operator_training": [
+        "Treinamento inicial de 40 horas mínimo",
+        "Reciclagem trimestral obrigatória",
+        "Certificação em procedimentos críticos",
+        "Acompanhamento de desempenho individual"
+      ]
+    },
+
+    "industry_benchmarks": {
+      "_comment": "📊 Benchmarks industriais para comparação",
+      "world_class": {
+        "oee": 0.85,
+        "quality_rate": 0.995,
+        "availability": 0.90,
+        "performance": 0.95,
+        "comment": "Padrão mundial de excelência"
+      },
+      "average": {
+        "oee": 0.65,
+        "quality_rate": 0.92,
+        "availability": 0.75,
+        "performance": 0.85,
+        "comment": "Média da indústria brasileira"
+      },
+      "minimum_acceptable": {
+        "oee": 0.50,
+        "quality_rate": 0.85,
+        "availability": 0.65,
+        "performance": 0.75,
+        "comment": "Mínimo aceitável para manter competitividade"
+      }
+    }
+  },
+
+  "machine_specific": {
+    "_comment": "🔧 Configurações específicas por máquina - permite personalização",
+    
+    "MAQUINA-450": {
+      "item": "1318",
+      "item_name": "Placa Sextavada",
+      "optimal_batch_size": 300,
+      "quality_target": 0.99,
+      "cycle_time_target": 45,
+      "custom_thresholds": {
+        "alta_taxa_rejeicao": 0.12,
+        "sequencia_rejeicoes": 4,
+        "comment": "Esta máquina tem tolerâncias mais apertadas"
+      },
+      "specific_causes": [
+        "Desalinhamento do mandril sextavado",
+        "Desgaste da ferramenta de chanfro",
+        "Variação na dureza do aço 1045"
+      ],
+      "maintenance_schedule": "weekly",
+      "critical_parameters": [
+        "Pressão de fixação: 5.5 bar",
+        "Velocidade de corte: 180 rpm", 
+        "Avanço: 0.15 mm/rev"
+      ]
+    },
+
+    "DEFAULT": {
+      "_comment": "Configurações padrão para máquinas não especificadas",
+      "optimal_batch_size": 250,
+      "quality_target": 0.95,
+      "cycle_time_target": 60,
+      "maintenance_schedule": "monthly"
+    }
+  },
+
+  "notification_system": {
+    "_comment": "🔔 Como e quando notificar pessoas sobre problemas",
+    
+    "channels": {
+      "dashboard": {
+        "enabled": true,
+        "priority_threshold": 2,
+        "comment": "Mostra no dashboard se prioridade >= 2"
+      },
+      "email": {
+        "enabled": false,
+        "priority_threshold": 4,
+        "recipients": ["supervisor@empresa.com"],
+        "comment": "Email apenas para problemas críticos"
+      },
+      "sms": {
+        "enabled": false,
+        "priority_threshold": 5,
+        "comment": "SMS apenas para situações de emergência"
+      }
+    },
+
+    "escalation_matrix": {
+      "level_1": {
+        "priority": [1, 2],
+        "action": "log_only",
+        "responsible": "system"
+      },
+      "level_2": {
+        "priority": [3],
+        "action": "notify_operator",
+        "responsible": "operator"
+      },
+      "level_3": {
+        "priority": [4],
+        "action": "notify_supervisor",
+        "responsible": "supervisor"
+      },
+      "level_4": {
+        "priority": [5],
+        "action": "emergency_protocol",
+        "responsible": "manager"
+      }
+    }
+  },
+
+  "performance_optimization": {
+    "_comment": "⚡ Configurações para otimizar performance do sistema",
+    
+    "caching": {
+      "enabled": true,
+      "ttl_minutes": 30,
+      "max_entries": 1000,
+      "comment": "Cache por 30min para evitar recálculos desnecessários"
+    },
+
+    "database": {
+      "batch_size": 100,
+      "query_timeout": 5000,
+      "connection_pool": 10,
+      "comment": "Otimizações para MongoDB"
+    },
+
+    "analysis_limits": {
+      "max_records_per_analysis": 10000,
+      "max_analysis_time_seconds": 120,
+      "concurrent_analyses": 3,
+      "comment": "Limites para evitar sobrecarga do sistema"
+    }
+  },
+
+  "debugging": {
+    "_comment": "🐛 Configurações para debug e troubleshooting",
+    
+    "logging": {
+      "level": "info",
+      "detailed_analysis": false,
+      "save_raw_data": false,
+      "comment": "Logs detalhados podem impactar performance"
+    },
+
+    "test_mode": {
+      "enabled": false,
+      "mock_ai_responses": false,
+      "force_patterns": [],
+      "comment": "Modo de teste para desenvolvimento"
+    }
+  },
+
+  "version_info": {
+    "_comment": "📋 Informações de versionamento do arquivo",
+    "config_version": "2.0.0",
+    "created_date": "2025-07-24",
+    "created_by": "VIXEM Edge Team",
+    "last_modified": "2025-07-24T14:30:00Z",
+    "changelog": [
+      "2.0.0: Configuração completa com todos os padrões",
+      "1.0.0: Versão inicial com apenas alta_taxa_rejeicao"
+    ]
+  }
+}
